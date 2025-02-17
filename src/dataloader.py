@@ -1,3 +1,4 @@
+import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
 from transformers import CLIPProcessor, CLIPModel
@@ -9,30 +10,50 @@ dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
+
+device = (
+    "mps"
+    if torch.backends.mps.is_available()
+    else "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+model.to(device)
+
+
 class Flickr30kCLIPDataset(Dataset):
-    def __init__(self, hf_dataset, processor):
+    def __init__(self, hf_dataset, processor, model):
         self.hf_dataset = hf_dataset
         self.processor = processor
+        self.model = model
 
     def __len__(self):
         return len(self.hf_dataset)
 
     def __getitem__(self, idx):
         item = self.hf_dataset[idx]
-        image = item["image"]  # PIL image
-        captions = item["caption"]  # List of captions
-        caption = captions[0]
+        image = item["image"]
+        caption = item["caption"][0]  # Select only the first caption
 
-        # Preprocess image using CLIP processor
-        inputs = self.processor(images=image, return_tensors="pt")
+        # Process image & compute CLIP embedding
+        image_inputs = self.processor(images=image, return_tensors="pt")
+        pixel_values = image_inputs["pixel_values"]
 
-        # Extract pixel values (PyTorch tensor)
-        pixel_values = inputs["pixel_values"].squeeze(0)  # Shape: (3, 224, 224)
+        with torch.no_grad():  # Freeze CLIP
+            image_embedding = self.model.get_image_features(pixel_values).squeeze(
+                0
+            )  # (512,)
 
-        return pixel_values, caption  # Return tensor + captions
+        text_inputs = self.processor(text=caption, return_tensors="pt", truncation=True)
+        input_ids = text_inputs["input_ids"]
+
+        with torch.no_grad():
+            text_embedding = self.model.get_text_features(input_ids).squeeze(0)
+
+        return image_embedding, text_embedding
+
 
 # Create dataset instance
-flickr_dataset = Flickr30kCLIPDataset(dataset, processor)
+flickr_dataset = Flickr30kCLIPDataset(dataset, processor, model)
 
 # Define batch size
 batch_size = 32
@@ -40,8 +61,9 @@ batch_size = 32
 # Create PyTorch DataLoader
 dataloader = DataLoader(flickr_dataset, batch_size=batch_size, shuffle=True)
 
-# Fetch one batch
-images, caption = next(iter(dataloader))
+# Fetch a batch
+image_embeddings, text_embeddings = next(iter(dataloader))
 
-print("Batch Image Tensor Shape:", images.shape)  # Should be (batch_size, 3, 224, 224)
-print("First image caption:", caption)  # List of caption
+if __name__ == "__main__":
+    print("Image Embeddings Shape:", image_embeddings.shape)  # (32, 512)
+    print("Text Embeddings Shape:", text_embeddings.shape)  # (32, 512)
