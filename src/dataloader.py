@@ -50,12 +50,10 @@ class Flickr30kCLIPDataset(Dataset):
             max_length=77  # CLIP's max length
         )
         
-        # return {
-        #     'image_embedding': image_embedding,
-        #     'input_ids': text_inputs["input_ids"].squeeze(0),
-        #     'attention_mask': text_inputs["attention_mask"].squeeze(0)
-        # }
-        return image_embedding, text_inputs["input_ids"].squeeze(0), text_inputs["attention_mask"].squeeze(0)
+        input_ids = text_inputs["input_ids"].squeeze(0)
+        attention_mask = text_inputs["attention_mask"].squeeze(0)
+
+        return image_embedding, input_ids, attention_mask
 
 
 # Create dataset instance
@@ -68,8 +66,9 @@ batch_size = 32
 dataloader = DataLoader(flickr_dataset, batch_size=batch_size, shuffle=True)
 
 # Fetch a batch
-image_embeddings, text_embeddings, thing = next(iter(dataloader))
+image_embeddings, input_ids, attention_mask = next(iter(dataloader))
 
 if __name__ == "__main__":
     print("Image Embeddings Shape:", image_embeddings.shape)  # (32, 512)
-    print("Text Embeddings Shape:", text_embeddings.shape)  # (32, 512)
+    print("Input IDs Shape:", input_ids.shape)  # (32, 77)
+    print("Attention Mask Shape:", attention_mask.shape)  # (32, 77)
