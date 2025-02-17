@@ -1,13 +1,16 @@
 import torch
 from datasets import load_dataset
 from torch.utils.data import Dataset, DataLoader
-from transformers import CLIPProcessor, CLIPModel
+from transformers import GPT2Tokenizer, CLIPProcessor, CLIPModel
 
 class Flickr30kCLIPDataset(Dataset):
-    def __init__(self, hf_dataset, processor, model):
+    def __init__(self, hf_dataset, clip_processor, clip_model):
         self.hf_dataset = hf_dataset
-        self.processor = processor
-        self.model = model
+        self.clip_processor = clip_processor
+        self.clip_model = clip_model
+        # Add GPT2 tokenizer
+        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self.tokenizer.pad_token = self.tokenizer.eos_token
         # Add image projection layer to match decoder dimensions if needed
         # self.image_projection = nn.Linear(512, decoder_hidden_size)
 
@@ -20,16 +23,16 @@ class Flickr30kCLIPDataset(Dataset):
         caption = item["caption"][0]
 
         # Get image embedding
-        image_inputs = self.processor(images=image, return_tensors="pt")
+        image_inputs = self.clip_processor(images=image, return_tensors="pt")
         with torch.no_grad():
-            image_embedding = self.model.get_image_features(pixel_values=image_inputs["pixel_values"]).squeeze(0)
+            image_embedding = self.clip_model.get_image_features(pixel_values=image_inputs["pixel_values"]).squeeze(0)
 
-        # Get text tokens
-        text_inputs = self.processor(
-            text=caption, 
-            return_tensors="pt", 
-            truncation=True, 
-            padding="max_length",
+        # Use GPT2 tokenizer instead of CLIP
+        text_inputs = self.tokenizer(
+            caption,
+            return_tensors="pt",
+            truncation=True,
+            padding='max_length',
             max_length=77
         )
         
