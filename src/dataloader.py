@@ -4,13 +4,11 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import GPT2Tokenizer, CLIPProcessor, CLIPModel
 
 class Flickr30kCLIPDataset(Dataset):
-    def __init__(self, hf_dataset, clip_processor, clip_model):
+    def __init__(self, hf_dataset, clip_processor, clip_model, tokenizer):
         self.hf_dataset = hf_dataset
         self.clip_processor = clip_processor
         self.clip_model = clip_model
-        # Add GPT2 tokenizer
-        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.tokenizer = tokenizer
         # Add image projection layer to match decoder dimensions if needed
         # self.image_projection = nn.Linear(512, decoder_hidden_size)
 
@@ -27,7 +25,7 @@ class Flickr30kCLIPDataset(Dataset):
         with torch.no_grad():
             image_embedding = self.clip_model.get_image_features(pixel_values=image_inputs["pixel_values"]).squeeze(0)
 
-        # Use GPT2 tokenizer instead of CLIP
+        # Use provided tokenizer
         text_inputs = self.tokenizer(
             caption,
             return_tensors="pt",
@@ -55,10 +53,11 @@ def get_flickr_dataloader(split="train", batch_size=32):
     # Load dataset from Hugging Face
     dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
 
-    # Load CLIP model and processor
-    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-
+    # Load models and tokenizers
+    clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+    clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    tokenizer.pad_token = tokenizer.eos_token
 
     device = (
         "mps"
@@ -66,10 +65,10 @@ def get_flickr_dataloader(split="train", batch_size=32):
         else "cuda" if torch.cuda.is_available() else "cpu"
     )
 
-    model.to(device)
+    clip_model.to(device)
 
     # Create dataset instance
-    flickr_dataset = Flickr30kCLIPDataset(dataset, processor, model)
+    flickr_dataset = Flickr30kCLIPDataset(dataset, clip_processor, clip_model, tokenizer)
 
     # Create and return DataLoader
     return DataLoader(flickr_dataset, batch_size=batch_size, shuffle=True)
