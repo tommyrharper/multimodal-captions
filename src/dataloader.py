@@ -87,5 +87,4 @@ if __name__ == "__main__":
     print("Input IDs:", input_ids.shape)  # [32, 77]
     print("Attention Mask:", attention_mask.shape)  # [32, 77]
     print("Labels:", labels.shape)  # [32, 77]
-    print("attention_mask:", attention_mask[0])  # [START, word1, word2, word3, END]
 
