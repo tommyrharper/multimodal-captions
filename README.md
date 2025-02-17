@@ -19,6 +19,8 @@ conda deactivate # to exit
 conda install pytorch
 # community packages
 conda install -c conda-forge wandb
+# Update environment files
+./export_env.sh
 ```
 
 ### How I created it

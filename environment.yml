@@ -1,7 +1,7 @@
 name: multimodal-captions
 channels:
-  - defaults
   - conda-forge
+  - defaults
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
 dependencies:
@@ -10,4 +10,4 @@ dependencies:
   - torchvision
   - tqdm
   - wandb
-prefix: /opt/anaconda3/envs/multimodal-captions
+  - datasets

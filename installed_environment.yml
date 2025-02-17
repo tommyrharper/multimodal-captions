@@ -8,4 +8,5 @@ dependencies:
   - torchvision
   - tqdm
   - wandb
+  - datasets
 prefix: /opt/anaconda3/envs/multimodal-captions
