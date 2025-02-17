@@ -9,7 +9,18 @@
 ```bash
 conda env create -f environment.yml
 conda activate multimodal-captions
+conda deactivate # to exit
 ```
+
+### Installing packages
+
+```bash
+# conda packages
+conda install pytorch
+# community packages
+conda install -c conda-forge wandb
+```
+
 ### How I created it
 
 1. Create environment and export env info
