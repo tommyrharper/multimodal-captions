@@ -34,22 +34,28 @@ class Flickr30kCLIPDataset(Dataset):
         image = item["image"]
         caption = item["caption"][0]  # Select only the first caption
 
-        # Process image & compute CLIP embedding
+        # Process image & compute CLIP image embedding
         image_inputs = self.processor(images=image, return_tensors="pt")
         pixel_values = image_inputs["pixel_values"]
 
         with torch.no_grad():  # Freeze CLIP
-            image_embedding = self.model.get_image_features(pixel_values).squeeze(
-                0
-            )  # (512,)
+            image_embedding = self.model.get_image_features(pixel_values).squeeze(0)
 
-        text_inputs = self.processor(text=caption, return_tensors="pt", truncation=True)
-        input_ids = text_inputs["input_ids"]
-
-        with torch.no_grad():
-            text_embedding = self.model.get_text_features(input_ids).squeeze(0)
-
-        return image_embedding, text_embedding
+        # Process text with padding
+        text_inputs = self.processor(
+            text=caption, 
+            return_tensors="pt", 
+            truncation=True, 
+            padding="max_length",
+            max_length=77  # CLIP's max length
+        )
+        
+        # return {
+        #     'image_embedding': image_embedding,
+        #     'input_ids': text_inputs["input_ids"].squeeze(0),
+        #     'attention_mask': text_inputs["attention_mask"].squeeze(0)
+        # }
+        return image_embedding, text_inputs["input_ids"].squeeze(0), text_inputs["attention_mask"].squeeze(0)
 
 
 # Create dataset instance
@@ -62,7 +68,7 @@ batch_size = 32
 dataloader = DataLoader(flickr_dataset, batch_size=batch_size, shuffle=True)
 
 # Fetch a batch
-image_embeddings, text_embeddings = next(iter(dataloader))
+image_embeddings, text_embeddings, thing = next(iter(dataloader))
 
 if __name__ == "__main__":
     print("Image Embeddings Shape:", image_embeddings.shape)  # (32, 512)
