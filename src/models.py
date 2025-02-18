@@ -44,12 +44,9 @@ class Decoder(nn.Module):
         sequence = self.norm1(sequence + attn_output)
         sequence = sequence + self.ff(sequence)
 
-        logits = self.lm_head(sequence)
-
-        # todo: check if there is a more efficient way than slicing off the image token at the end after logits are calculated
-        # perhaps can do this before the logits are calculated???
-        # Skip the image token position in logits (position 0)
-        logits = logits[:, 1:, :]  # Now matches labels length
+        # Only compute logits for text positions (skip image token)
+        text_sequence = sequence[:, 1:, :]
+        logits = self.lm_head(text_sequence)
 
         return logits
         return None
