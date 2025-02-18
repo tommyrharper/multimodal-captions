@@ -15,12 +15,12 @@ class Decoder(nn.Module):
             n_inner=n_inner,  # Smaller feed-forward dimension
         )
 
-        # Project CLIP embedding to GPT2 dimension
-        self.image_projection = nn.Linear(
-            clip_embedding_dim, self.config.n_embd
-        )  # [512] => [768]
-        self.norm1 = nn.LayerNorm(self.config.n_embd)
-        self.dropout = nn.Dropout(0.1)
+        # Project and normalize image embedding
+        self.image_projection = nn.Sequential(
+            nn.Linear(clip_embedding_dim, self.config.n_embd),
+            nn.LayerNorm(self.config.n_embd),
+            nn.Dropout(0.1),
+        )
 
         # Fixed size causal mask for sequence length plus image token
         self.register_buffer(
@@ -48,9 +48,6 @@ class Decoder(nn.Module):
 
     def forward(self, image_embedding, input_ids, labels):
         image_embedding = self.image_projection(image_embedding)
-        image_embedding = self.norm1(image_embedding)
-        image_embedding = self.dropout(image_embedding)
-
         text_embeddings = self.token_embedding(input_ids)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
 
