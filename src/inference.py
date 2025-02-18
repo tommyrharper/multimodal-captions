@@ -5,6 +5,8 @@ from src.dataloader import get_flickr_dataloader
 import argparse
 import warnings
 import matplotlib.pyplot as plt
+import textwrap
+
 warnings.simplefilter("ignore", category=FutureWarning)
 
 
@@ -16,34 +18,35 @@ def load_model(checkpoint_path, device):
         checkpoint_path = os.path.join(project_root, checkpoint_path)
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
-    
+
     # Use known training architecture
     model = Decoder(n_head=2, n_inner=512).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])
     return model
 
 
-def generate_caption(model, image_embedding, tokenizer, max_length=77):
+def generate_caption(model, image_embedding, tokenizer, min_length=5):
     """Generate a caption for an image."""
     model.eval()
     with torch.no_grad():
-        # Start with empty sequence
         input_ids = torch.tensor([[tokenizer.bos_token_id]]).to(image_embedding.device)
-        # Generate tokens one by one
-        for _ in range(max_length - 1):
-            # Get next token probabilities
+
+        for i in range(77 - 1):  # Fixed max length of 77 from training
             log_probs = model(image_embedding, input_ids)
             next_token_logits = log_probs[:, -1, :]
+
+            # Force non-EOS tokens for first min_length tokens
+            if i < min_length:
+                next_token_logits[0, tokenizer.eos_token_id] = float("-inf")
+
             next_token = torch.argmax(next_token_logits, dim=-1)
 
-            # Stop if we predict the end token
+            # Stop if we predict the end token (after min_length)
             if next_token.item() == tokenizer.eos_token_id:
                 break
 
-            # Add predicted token to sequence
             input_ids = torch.cat([input_ids, next_token.unsqueeze(0)], dim=1)
 
-        # Decode the generated sequence
         caption = tokenizer.decode(input_ids[0], skip_special_tokens=True)
         return caption
 
@@ -76,10 +79,7 @@ if __name__ == "__main__":
 
     # Get validation dataloader
     val_dataloader = get_flickr_dataloader(
-        device, 
-        split="val", 
-        batch_size=1, 
-        return_extras=True
+        device, split="val", batch_size=1, return_extras=True
     )
 
     # Get the requested image
@@ -94,14 +94,31 @@ if __name__ == "__main__":
     image = batch["image"]
     original_caption = batch["caption"][0]
     image_embedding = batch["image_embedding"].to(device)
-    generated_caption = generate_caption(model, image_embedding, val_dataloader.dataset.tokenizer)
+    generated_caption = generate_caption(
+        model, image_embedding, val_dataloader.dataset.tokenizer
+    )
 
     print("Generated caption:", generated_caption)
     print("Original caption:", original_caption)
 
-    # Display image and captions
-    plt.figure(figsize=(10, 8))
+    # Wrap captions for display
+    wrapped_gen = textwrap.fill(f"Generated: {generated_caption}", width=60)
+    wrapped_orig = textwrap.fill(f"Ground truth: {original_caption}", width=60)
+
+    # Display image and wrapped captions
+    plt.figure(figsize=(10, 10))  # Make figure taller
     plt.imshow(image)
-    plt.axis('off')
-    plt.title(f"Generated: {generated_caption}\nGround truth: {original_caption}")
+    plt.axis("off")
+
+    # Add title with smaller font and more padding
+    plt.title(
+        f"{wrapped_gen}\n\n{wrapped_orig}",
+        pad=20,
+        fontsize=10,
+        wrap=True,
+        y=1.05,  # Move title up
+    )
+
+    # Adjust layout to prevent text cutoff
+    plt.subplots_adjust(top=0.85)  # Leave more space at top
     plt.show()
