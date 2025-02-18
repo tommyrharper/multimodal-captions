@@ -140,13 +140,39 @@ if __name__ == "__main__":
         default=0,
         help="Number of batches to train (default: all)",
     )
+    parser.add_argument(
+        "--lr",
+        type=int,
+        default=1e-4,
+        help="Learning rate (default: 1e-4)",
+    )
+    parser.add_argument(
+        "--num-heads",
+        type=int,
+        default=2,
+        help="Number of heads to use (default: 2)",
+    )
+    parser.add_argument(
+        "--num-inner",
+        type=int,
+        default=512,
+        help="Number of inner dimensions (default: 512)",
+    )
+    parser.add_argument(
+        "--weight-decay",
+        type=int,
+        default=0.01,
+        help="Weight decay level (default: 0.01)",
+    )
     args = parser.parse_args()
 
     train(
         device=device,
-        num_heads=2,
-        num_inner=512,
+        num_heads=args.num_heads,
+        num_inner=args.num_inner,
         use_wandb=args.wandb,
         num_epochs=args.epochs,
         max_batches=args.max_batches,
+        lr=args.lr,
+        weight_decay=args.weight_decay,
     )
