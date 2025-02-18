@@ -4,6 +4,7 @@ from src.models import Decoder
 from src.dataloader import get_flickr_dataloader
 import argparse
 import warnings
+import matplotlib.pyplot as plt
 warnings.simplefilter("ignore", category=FutureWarning)
 
 
@@ -67,20 +68,27 @@ if __name__ == "__main__":
     # Load model from checkpoint
     model = load_model(args.checkpoint, device)
 
-    # Get a single example from validation set
-    val_dataloader = get_flickr_dataloader(device, split="val", batch_size=1)
+    # Get a single example from validation set with images and captions
+    val_dataloader = get_flickr_dataloader(
+        device, 
+        split="val", 
+        batch_size=1, 
+        return_extras=True
+    )
     batch = next(iter(val_dataloader))
 
-    # Generate caption
+    # Get a single example and generate caption
+    image = batch["image"]
+    original_caption = batch["caption"][0]  # Get first caption
     image_embedding = batch["image_embedding"].to(device)
-    caption = generate_caption(model, image_embedding, val_dataloader.dataset.tokenizer)
+    generated_caption = generate_caption(model, image_embedding, val_dataloader.dataset.tokenizer)
 
-    # Decode ground truth from input_ids
-    ground_truth = val_dataloader.dataset.tokenizer.decode(
-        batch["input_ids"][0], 
-        skip_special_tokens=True
-    )
+    print("generated_caption", generated_caption)
+    print("original_caption", original_caption)
 
-    # Print results
-    print("Generated caption:", caption)
-    print("Ground truth:", ground_truth)
+    # Display image and captions
+    plt.figure(figsize=(10, 8))
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title(f"Generated: {generated_caption}\nGround truth: {original_caption}")
+    plt.show()
