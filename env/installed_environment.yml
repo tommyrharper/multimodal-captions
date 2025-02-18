@@ -4,9 +4,10 @@ channels:
   - https://repo.anaconda.com/pkgs/r
 dependencies:
   - python=3.10
-  - pytorch
   - torchvision
   - tqdm
   - wandb
   - datasets
+  - transformers
+  - pytorch
 prefix: /opt/anaconda3/envs/multimodal-captions

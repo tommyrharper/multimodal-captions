@@ -1,5 +1,6 @@
 name: multimodal-captions
 channels:
+  - pytorch
   - conda-forge
   - defaults
   - https://repo.anaconda.com/pkgs/main
@@ -47,6 +48,7 @@ dependencies:
   - frozenlist=1.5.0=py310h80987f9_0
   - fsspec=2024.3.1=py310hca03da5_0
   - gflags=2.2.2=h313beb8_1
+  - giflib=5.2.2=h80987f9_0
   - gitdb=4.0.12=pyhd8ed1ab_0
   - gitpython=3.1.44=pyhff2d567_0
   - glog=0.5.0=h313beb8_1
@@ -80,6 +82,7 @@ dependencies:
   - libgfortran5=11.3.0=h009349e_28
   - libgrpc=1.62.2=h62f6fdd_0
   - libiconv=1.16=h80987f9_3
+  - libjpeg-turbo=2.0.0=h1a28f6b_0
   - libnghttp2=1.57.0=h62f6fdd_0
   - libopenblas=0.3.21=h269037a_0
   - libpng=1.6.39=h80987f9_0
@@ -88,8 +91,7 @@ dependencies:
   - libssh2=1.11.1=h3e2b118_0
   - libthrift=0.15.0=h73c2103_2
   - libtiff=4.5.1=hc9ead59_1
-  - libtorch=2.5.1=gpu_mps_h82d5d13_202
-  - libuv=1.48.0=h80987f9_0
+  - libwebp=1.3.2=ha3663a8_0
   - libwebp-base=1.3.2=h80987f9_1
   - libzlib=1.2.13=hfb2fe0b_6
   - llvm-openmp=14.0.6=hc6e5704_0
@@ -128,24 +130,27 @@ dependencies:
   - python-tzdata=2023.3=pyhd3eb1b0_0
   - python-xxhash=3.5.0=py310h80987f9_0
   - python_abi=3.10=5_cp310
-  - pytorch=2.3.1=cpu_py310h353dffe_0
+  - pytorch=2.5.1=py3.10_0
   - pytz=2024.1=py310hca03da5_0
   - pyyaml=6.0.2=py310hc74094e_2
   - re2=2022.04.01=hc377ac9_0
   - readline=8.2=h1a28f6b_0
+  - regex=2024.11.6=py310h80987f9_0
   - requests=2.32.3=pyhd8ed1ab_1
+  - safetensors=0.4.5=py310hf4b39b5_1
   - sentry-sdk=2.21.0=pyhd8ed1ab_0
   - setproctitle=1.3.4=py310h078409c_0
   - setuptools=75.8.0=py310hca03da5_0
   - six=1.17.0=pyhd8ed1ab_0
-  - sleef=3.5.1=h80987f9_2
   - smmap=5.0.2=pyhd8ed1ab_0
   - snappy=1.2.1=h313beb8_0
   - sqlite=3.45.3=h80987f9_0
   - sympy=1.13.3=py310hca03da5_1
   - tk=8.6.14=h6ba3021_0
-  - torchvision=0.18.1=cpu_py310hb6554cd_0
+  - tokenizers=0.20.1=py310hd743ec3_1
+  - torchvision=0.20.1=py310_cpu
   - tqdm=4.67.1=py310h33ce5c2_0
+  - transformers=4.45.2=py310hca03da5_0
   - typing=3.10.0.0=pyhd8ed1ab_2
   - typing-extensions=4.12.2=hd8ed1ab_1
   - typing_extensions=4.12.2=pyha770c72_1
