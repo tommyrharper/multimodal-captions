@@ -3,11 +3,22 @@ from torch import nn
 from src.dataloader import get_flickr_dataloader
 from src.models import Decoder
 from torch import optim
+import random
+import numpy as np
 
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def train(
     device, num_heads=4, num_inner=1024, num_epochs=1, lr=1e-4, weight_decay=0.01
 ):
+    set_seed()  # Set seeds before training
+    
     dataloader = get_flickr_dataloader(device)
     decoder = Decoder(n_head=num_heads, n_inner=num_inner).to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)
