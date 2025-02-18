@@ -46,9 +46,9 @@ def train(
             input_ids = batch["input_ids"].to(device)
             labels = batch["labels"].to(device)
 
-            logits = decoder(image_embedding, input_ids)
-            loss = nn.functional.cross_entropy(
-                logits.reshape(-1, decoder.config.vocab_size),
+            log_probs = decoder(image_embedding, input_ids)
+            loss = nn.functional.nll_loss(
+                log_probs.reshape(-1, decoder.config.vocab_size),
                 labels.reshape(-1),
                 ignore_index=-100,
             )
@@ -73,9 +73,9 @@ def train(
                 input_ids = batch["input_ids"].to(device)
                 labels = batch["labels"].to(device)
 
-                logits = decoder(image_embedding, input_ids)
-                loss = nn.functional.cross_entropy(
-                    logits.reshape(-1, decoder.config.vocab_size),
+                log_probs = decoder(image_embedding, input_ids)
+                loss = nn.functional.nll_loss(
+                    log_probs.reshape(-1, decoder.config.vocab_size),
                     labels.reshape(-1),
                     ignore_index=-100,
                 )
