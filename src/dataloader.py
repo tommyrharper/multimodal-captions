@@ -25,7 +25,7 @@ class Flickr30kCLIPDataset(Dataset):
             return self.clip_model.get_image_features(
                 pixel_values=image_inputs["pixel_values"]
             ).squeeze(0)
-        
+
     def get_input_ids(self, captions):
         caption = captions[torch.randint(0, len(captions), (1,)).item()]
 
@@ -38,18 +38,24 @@ class Flickr30kCLIPDataset(Dataset):
             max_length=77,
         )
 
-        return text_inputs["input_ids"].squeeze(0)
+        input_ids = text_inputs["input_ids"].squeeze(0)
+        return input_ids
 
-    def __getitem__(self, idx):
-        item = self.hf_dataset[idx]
-        input_ids = self.get_input_ids(item["caption"])
+    def get_labels(self, input_ids):
         # Create labels (shifted input_ids for next token prediction)
         labels = input_ids.clone()
         labels[:-1] = input_ids[1:]  # shift left by 1
         labels[-1] = -100  # ignore last token prediction
+        return labels
+
+    def __getitem__(self, idx):
+        item = self.hf_dataset[idx]
+        image_embeddings = self.get_image_embedding(item["image"])
+        input_ids = self.get_input_ids(item["caption"])
+        labels = self.get_labels(input_ids)
 
         return {
-            "image_embedding": self.get_image_embedding(item["image"]),  # (512,)
+            "image_embedding": image_embeddings,  # (512,)
             "input_ids": input_ids,  # (77,)
             "labels": labels,  # (77,)
         }
