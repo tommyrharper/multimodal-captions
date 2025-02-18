@@ -5,6 +5,7 @@ from src.models import Decoder
 from torch import optim
 import random
 import numpy as np
+from tqdm import tqdm
 
 debug_batch_num = 3
 
@@ -37,13 +38,10 @@ def train(
 
     for epoch in range(num_epochs):
         decoder.train()
-        batch_num = 0
         train_loss = 0
-        for batch in train_dataloader:
-            batch_num += 1
-            print("batch", batch_num)
-
-            # Ensure all tensors are on the correct device
+        train_iter = tqdm(train_dataloader, desc=f"Training Epoch {epoch+1}")
+        
+        for batch_num, batch in enumerate(train_iter, 1):
             image_embedding = batch["image_embedding"].to(device)
             input_ids = batch["input_ids"].to(device)
             labels = batch["labels"].to(device)
@@ -60,16 +58,17 @@ def train(
             optimizer.step()
 
             train_loss += loss.item()
+            train_iter.set_postfix({"loss": train_loss / batch_num})
 
-            if debug and batch_num >= debug_batch_num:  # Early break if in debug mode
+            if debug and batch_num >= debug_batch_num:
                 break
 
         decoder.eval()
         val_loss = 0
-        val_batch_num = 0
+        val_iter = tqdm(val_dataloader, desc=f"Validation Epoch {epoch+1}")
+        
         with torch.no_grad():
-            for batch in val_dataloader:
-                val_batch_num += 1
+            for val_batch_num, batch in enumerate(val_iter, 1):
                 image_embedding = batch["image_embedding"].to(device)
                 input_ids = batch["input_ids"].to(device)
                 labels = batch["labels"].to(device)
@@ -82,16 +81,15 @@ def train(
                 )
 
                 val_loss += loss.item()
+                val_iter.set_postfix({"loss": val_loss / val_batch_num})
 
-                if (
-                    debug and val_batch_num >= debug_batch_num
-                ):  # Early break if in debug mode
+                if debug and val_batch_num >= debug_batch_num:
                     break
 
         average_train_loss = train_loss / batch_num
-        average_val_loss = val_loss / batch_num
-        print(f"Epoch {epoch+1} average train loss: {average_train_loss}")
-        print(f"Epoch {epoch+1} average val loss: {average_val_loss}")
+        average_val_loss = val_loss / val_batch_num
+        print(f"Epoch {epoch+1} average train loss: {average_train_loss:.4f}")
+        print(f"Epoch {epoch+1} average val loss: {average_val_loss:.4f}")
 
 
 if __name__ == "__main__":
