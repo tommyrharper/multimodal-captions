@@ -117,7 +117,16 @@ def train(
 
         if average_val_loss < best_val_loss:
             best_val_loss = average_val_loss
-            logger.save_checkpoint(decoder, epoch, average_train_loss, average_val_loss)
+            logger.save_checkpoint(
+                decoder, 
+                epoch, 
+                average_train_loss, 
+                average_val_loss,
+                config={
+                    'n_head': num_heads,
+                    'n_inner': num_inner,
+                }
+            )
             print(f"Saved new best model with validation loss: {best_val_loss:.4f}")
 
     logger.finish()

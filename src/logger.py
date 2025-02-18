@@ -57,6 +57,7 @@ class TrainingLogger:
         epoch: int,
         train_loss: float,
         val_loss: float,
+        config: dict = None,
         checkpoint_dir: str = "checkpoints",
     ) -> None:
         """Save model checkpoint locally and to wandb."""
@@ -68,6 +69,8 @@ class TrainingLogger:
             "train_loss": train_loss,
             "val_loss": val_loss,
         }
+        if config is not None:
+            checkpoint["config"] = config
         checkpoint_path = os.path.join(checkpoint_dir, f"model_epoch_{epoch}.pt")
         torch.save(checkpoint, checkpoint_path)
 

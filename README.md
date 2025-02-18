@@ -5,10 +5,15 @@
 ```bash
 conda activate multimodal-captions
 wandb login
-python -m src.train
-python -m src.train --wandb
+
+# First, train the model
 python -m src.train --wandb --epochs 10 --batch-size 64
+
+# Then run inference with the trained model
+python -m src.inference --checkpoint checkpoints/model_epoch_9.pt
 ```
+
+Note: You need to train the model first to generate checkpoint files before running inference.
 
 Optional: install nvtop to monitor system usage on linux gpu
 ```bash

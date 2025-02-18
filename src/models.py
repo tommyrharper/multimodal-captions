@@ -62,9 +62,13 @@ class Decoder(nn.Module):
         text_embeddings = self.embed_dropout(text_embeddings)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
 
+        # Get appropriate size attention mask for current sequence length
+        seq_length = sequence.size(1)
+        attn_mask = self.attn_mask[:seq_length, :seq_length]
+
         # self-attention + add + norm
         attn_output, _ = self.self_attention(
-            sequence, sequence, sequence, attn_mask=self.attn_mask
+            sequence, sequence, sequence, attn_mask=attn_mask
         )
         sequence = sequence + attn_output
         sequence = self.norm2(sequence)
