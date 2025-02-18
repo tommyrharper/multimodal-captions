@@ -46,7 +46,7 @@ class Decoder(nn.Module):
 
         self.lm_head = nn.Linear(self.config.n_embd, self.config.vocab_size)
 
-    def forward(self, image_embedding, input_ids, labels):
+    def forward(self, image_embedding, input_ids):
         image_embedding = self.image_projection(image_embedding)
         text_embeddings = self.token_embedding(input_ids)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
@@ -68,14 +68,6 @@ class Decoder(nn.Module):
         logits = self.lm_head(text_sequence)
 
         return logits
-        return None
-        if labels is not None:
-            loss = nn.functional.cross_entropy(
-                logits.view(-1, self.config.vocab_size),
-                labels.view(-1),
-                ignore_index=-100,
-            )
-            return loss
 
 
 if __name__ == "__main__":
@@ -86,5 +78,5 @@ if __name__ == "__main__":
     print("image_embedding.shape", image_embedding.shape)
     print("input_ids.shape", input_ids.shape)
     print("labels.shape", labels.shape)
-    result = decoder(image_embedding, input_ids, labels)
+    result = decoder(image_embedding, input_ids)
     print("result.shape", result.shape)
