@@ -14,6 +14,8 @@ class Decoder(nn.Module):
         )
 
         self.image_projection = nn.Linear(512, self.config.n_embd) # [512] => [768]
+        self.norm1 = nn.LayerNorm(self.config.n_embd)
+        self.dropout = nn.Dropout(0.1)
 
         # Fixed size causal mask for our specific sequence length (77 tokens + 1 image token)
         # note this is effectively saved as self.attn_mask
@@ -26,7 +28,6 @@ class Decoder(nn.Module):
         self.self_attention = nn.MultiheadAttention(
             self.config.n_embd, self.config.n_head, batch_first=True
         )
-        self.norm1 = nn.LayerNorm(self.config.n_embd)
         self.norm2 = nn.LayerNorm(self.config.n_embd)
 
         self.ff = nn.Sequential(
@@ -35,10 +36,15 @@ class Decoder(nn.Module):
             nn.Dropout(0.1),
             nn.Linear(self.config.n_inner, self.config.n_embd),
         )
+        self.norm3 = nn.LayerNorm(self.config.n_embd)
+
         self.lm_head = nn.Linear(self.config.n_embd, self.config.vocab_size)
 
     def forward(self, image_embedding, input_ids, labels):
         image_embedding = self.image_projection(image_embedding)
+        image_embedding = self.norm1(image_embedding)
+        image_embedding = self.dropout(image_embedding)
+
         text_embeddings = self.token_embedding(input_ids)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
 
@@ -47,12 +53,12 @@ class Decoder(nn.Module):
             sequence, sequence, sequence, attn_mask=self.attn_mask
         )
         sequence = sequence + attn_output
-        sequence = self.norm1(sequence)
+        sequence = self.norm2(sequence)
 
         # feed-forward + add + norm
         ff_output = self.ff(sequence)
         sequence = sequence + ff_output
-        sequence = self.norm2(sequence)
+        sequence = self.norm3(sequence)
 
         # Only compute logits for text positions (skip image token)
         text_sequence = sequence[:, 1:, :]
