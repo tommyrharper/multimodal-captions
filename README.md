@@ -10,6 +10,11 @@ python -m src.train --wandb
 python -m src.train --wandb --epochs 10 --batch-size 64
 ```
 
+Optional: install nvtop to monitor system usage on linux gpu
+```bash
+add-apt-repository -y ppa:flexiondotorg/nvtop;apt install nvtop
+```
+
 ## Environment setup
 
 ### Setup Instructions
