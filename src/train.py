@@ -6,6 +6,7 @@ from torch import optim
 import random
 import numpy as np
 
+
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -14,18 +15,20 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 def train(
     device, num_heads=4, num_inner=1024, num_epochs=1, lr=1e-4, weight_decay=0.01
 ):
     set_seed()  # Set seeds before training
-    
+
     train_dataloader = get_flickr_dataloader(device, split="train")
     val_dataloader = get_flickr_dataloader(device, split="val")
-    
+
     decoder = Decoder(n_head=num_heads, n_inner=num_inner).to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)
 
     for epoch in range(num_epochs):
+        decoder.train()
         batch_num = 0
         train_loss = 0
         for batch in train_dataloader:
@@ -44,16 +47,41 @@ def train(
                 ignore_index=-100,
             )
 
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
 
             train_loss += loss.item()
 
             if batch_num > 3:
                 break
 
-        print(f"Epoch {epoch+1} loss: {train_loss}")
+        decoder.eval()
+        val_loss = 0
+        val_batch_num = 0
+        with torch.no_grad():
+            for batch in val_dataloader:
+                val_batch_num += 1
+                image_embedding = batch["image_embedding"].to(device)
+                input_ids = batch["input_ids"].to(device)
+                labels = batch["labels"].to(device)
+
+                logits = decoder(image_embedding, input_ids, labels)
+                loss = nn.functional.cross_entropy(
+                    logits.reshape(-1, decoder.config.vocab_size),
+                    labels.reshape(-1),
+                    ignore_index=-100,
+                )
+
+                val_loss += loss.item()
+
+                if val_batch_num > 3:
+                    break
+
+        average_train_loss = train_loss / batch_num
+        average_val_loss = val_loss / batch_num
+        print(f"Epoch {epoch+1} average train loss: {average_train_loss}")
+        print(f"Epoch {epoch+1} average val loss: {average_val_loss}")
 
 
 if __name__ == "__main__":
