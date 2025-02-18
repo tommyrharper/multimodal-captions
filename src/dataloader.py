@@ -14,11 +14,7 @@ class Flickr30kCLIPDataset(Dataset):
     def __len__(self):
         return len(self.hf_dataset)
 
-    def __getitem__(self, idx):
-        item = self.hf_dataset[idx]
-        image = item["image"]
-        caption = item["caption"][torch.randint(0, len(item["caption"]), (1,)).item()]
-
+    def get_image_embedding(self, image):
         # Move image inputs to same device as CLIP model
         image_inputs = self.clip_processor(images=image, return_tensors="pt")
         image_inputs = {
@@ -26,9 +22,13 @@ class Flickr30kCLIPDataset(Dataset):
         }
 
         with torch.no_grad():
-            image_embedding = self.clip_model.get_image_features(
+            return self.clip_model.get_image_features(
                 pixel_values=image_inputs["pixel_values"]
             ).squeeze(0)
+
+    def __getitem__(self, idx):
+        item = self.hf_dataset[idx]
+        caption = item["caption"][torch.randint(0, len(item["caption"]), (1,)).item()]
 
         # Use provided tokenizer
         text_inputs = self.tokenizer(
@@ -47,25 +47,27 @@ class Flickr30kCLIPDataset(Dataset):
         labels[-1] = -100  # ignore last token prediction
 
         return {
-            "image_embedding": image_embedding,  # (512,)
+            "image_embedding": self.get_image_embedding(item["image"]),  # (512,)
             "input_ids": input_ids,  # (77,)
             "labels": labels,  # (77,)
         }
 
 
-def get_flickr_dataloader(device, split="train", batch_size=32, train_ratio=0.8, seed=42):
+def get_flickr_dataloader(
+    device, split="train", batch_size=32, train_ratio=0.8, seed=42
+):
     # Load full dataset
     full_dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
-    
+
     # Calculate split sizes
     total_size = len(full_dataset)
     train_size = int(total_size * train_ratio)
-    
+
     # Split dataset
     full_dataset = full_dataset.shuffle(seed=seed)
     train_dataset = full_dataset.select(range(train_size))
     val_dataset = full_dataset.select(range(train_size, total_size))
-    
+
     # Select appropriate split
     dataset = train_dataset if split == "train" else val_dataset
 
@@ -76,7 +78,9 @@ def get_flickr_dataloader(device, split="train", batch_size=32, train_ratio=0.8,
     tokenizer.pad_token = tokenizer.eos_token
 
     # Create dataset instance
-    flickr_dataset = Flickr30kCLIPDataset(dataset, clip_processor, clip_model, tokenizer)
+    flickr_dataset = Flickr30kCLIPDataset(
+        dataset, clip_processor, clip_model, tokenizer
+    )
 
     # Create and return DataLoader
     return DataLoader(flickr_dataset, batch_size=batch_size, shuffle=(split == "train"))
