@@ -1,5 +1,15 @@
 # Multimodal Captions
 
+## Running instructions
+
+```bash
+conda activate multimodal-captions
+wandb login
+python -m src.train
+python -m src.train --wandb
+python -m src.train --wandb --epochs 10 --batch-size 64
+```
+
 ## Environment setup
 
 ### Setup Instructions
@@ -7,7 +17,7 @@
 1. [Install conda/miniconda](https://docs.anaconda.com/miniconda/install/)
 2. Create the environment from `env/environment.yml`
 ```bash
-conda env create -f env/environment.yml
+conda env create -f env/environment.yml -y
 conda activate multimodal-captions
 conda deactivate # to exit
 ```
