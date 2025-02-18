@@ -25,10 +25,9 @@ class Flickr30kCLIPDataset(Dataset):
             return self.clip_model.get_image_features(
                 pixel_values=image_inputs["pixel_values"]
             ).squeeze(0)
-
-    def __getitem__(self, idx):
-        item = self.hf_dataset[idx]
-        caption = item["caption"][torch.randint(0, len(item["caption"]), (1,)).item()]
+        
+    def get_input_ids(self, captions):
+        caption = captions[torch.randint(0, len(captions), (1,)).item()]
 
         # Use provided tokenizer
         text_inputs = self.tokenizer(
@@ -39,8 +38,11 @@ class Flickr30kCLIPDataset(Dataset):
             max_length=77,
         )
 
-        input_ids = text_inputs["input_ids"].squeeze(0)
+        return text_inputs["input_ids"].squeeze(0)
 
+    def __getitem__(self, idx):
+        item = self.hf_dataset[idx]
+        input_ids = self.get_input_ids(item["caption"])
         # Create labels (shifted input_ids for next token prediction)
         labels = input_ids.clone()
         labels[:-1] = input_ids[1:]  # shift left by 1
