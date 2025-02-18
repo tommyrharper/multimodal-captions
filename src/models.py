@@ -27,9 +27,12 @@ class Decoder(nn.Module):
             self.config.n_embd, self.config.n_head, batch_first=True
         )
         self.norm1 = nn.LayerNorm(self.config.n_embd)
+        self.norm2 = nn.LayerNorm(self.config.n_embd)
+
         self.ff = nn.Sequential(
             nn.Linear(self.config.n_embd, self.config.n_inner),
-            nn.ReLU(),
+            nn.GELU(),
+            nn.Dropout(0.1),
             nn.Linear(self.config.n_inner, self.config.n_embd),
         )
         self.lm_head = nn.Linear(self.config.n_embd, self.config.vocab_size)
@@ -38,11 +41,18 @@ class Decoder(nn.Module):
         image_embedding = self.image_projection(image_embedding)
         text_embeddings = self.token_embedding(input_ids)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
+
+        # self-attention + add + norm
         attn_output, _ = self.self_attention(
             sequence, sequence, sequence, attn_mask=self.attn_mask
         )
-        sequence = self.norm1(sequence + attn_output)
-        sequence = sequence + self.ff(sequence)
+        sequence = sequence + attn_output
+        sequence = self.norm1(sequence)
+
+        # feed-forward + add + norm
+        ff_output = self.ff(sequence)
+        sequence = sequence + ff_output
+        sequence = self.norm2(sequence)
 
         # Only compute logits for text positions (skip image token)
         text_sequence = sequence[:, 1:, :]
