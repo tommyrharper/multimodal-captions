@@ -63,3 +63,8 @@ cp installed_environment.yml env/environment.yml
 #### Automated Approach
 
 Run the `./env/export_env.sh` script after each install.
+
+## Todo
+
+- [ ] Investigate if using NLL instead of Cross Entropy Loss could be a problem
+- [ ] Increase temperature during inference
