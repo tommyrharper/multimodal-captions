@@ -18,7 +18,7 @@ class Flickr30kCLIPDataset(Dataset):
     def __getitem__(self, idx):
         item = self.hf_dataset[idx]
         image = item["image"]
-        caption = item["caption"][0]
+        caption = item["caption"][0] # todo: get random caption?
 
         # Get image embedding
         image_inputs = self.clip_processor(images=image, return_tensors="pt")
@@ -35,7 +35,7 @@ class Flickr30kCLIPDataset(Dataset):
         )
         
         input_ids = text_inputs["input_ids"].squeeze(0)
-        attention_mask = text_inputs["attention_mask"].squeeze(0)
+        attention_mask = text_inputs["attention_mask"].squeeze(0) # todo: don't generate attention mask each time
         
         # Create labels (shifted input_ids for next token prediction)
         labels = input_ids.clone()
