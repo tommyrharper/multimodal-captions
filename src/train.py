@@ -19,6 +19,21 @@ def set_seed(seed=42):
     torch.backends.cudnn.benchmark = False
 
 
+def compute_loss(batch, model, device):
+    """Compute loss for a single batch."""
+    image_embedding = batch["image_embedding"].to(device)
+    input_ids = batch["input_ids"].to(device)
+    labels = batch["labels"].to(device)
+
+    log_probs = model(image_embedding, input_ids)
+    loss = nn.functional.nll_loss(
+        log_probs.reshape(-1, model.config.vocab_size),
+        labels.reshape(-1),
+        ignore_index=-100,
+    )
+    return loss
+
+
 def train(
     device,
     num_heads=4,
@@ -28,7 +43,7 @@ def train(
     weight_decay=0.01,
     debug=True,
 ):
-    set_seed()  # Set seeds before training
+    set_seed()
 
     train_dataloader = get_flickr_dataloader(device, split="train")
     val_dataloader = get_flickr_dataloader(device, split="val")
@@ -37,22 +52,14 @@ def train(
     optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)
 
     for epoch in range(num_epochs):
+        # Training
         decoder.train()
         train_loss = 0
         train_iter = tqdm(train_dataloader, desc=f"Training Epoch {epoch+1}")
         
         for batch_num, batch in enumerate(train_iter, 1):
-            image_embedding = batch["image_embedding"].to(device)
-            input_ids = batch["input_ids"].to(device)
-            labels = batch["labels"].to(device)
-
-            log_probs = decoder(image_embedding, input_ids)
-            loss = nn.functional.nll_loss(
-                log_probs.reshape(-1, decoder.config.vocab_size),
-                labels.reshape(-1),
-                ignore_index=-100,
-            )
-
+            loss = compute_loss(batch, decoder, device)
+            
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -63,23 +70,14 @@ def train(
             if debug and batch_num >= debug_batch_num:
                 break
 
+        # Validation
         decoder.eval()
         val_loss = 0
         val_iter = tqdm(val_dataloader, desc=f"Validation Epoch {epoch+1}")
         
         with torch.no_grad():
             for val_batch_num, batch in enumerate(val_iter, 1):
-                image_embedding = batch["image_embedding"].to(device)
-                input_ids = batch["input_ids"].to(device)
-                labels = batch["labels"].to(device)
-
-                log_probs = decoder(image_embedding, input_ids)
-                loss = nn.functional.nll_loss(
-                    log_probs.reshape(-1, decoder.config.vocab_size),
-                    labels.reshape(-1),
-                    ignore_index=-100,
-                )
-
+                loss = compute_loss(batch, decoder, device)
                 val_loss += loss.item()
                 val_iter.set_postfix({"loss": val_loss / val_batch_num})
 
