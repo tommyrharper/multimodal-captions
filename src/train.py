@@ -43,6 +43,7 @@ def train(
     weight_decay=0.01,
     use_wandb=False,
     max_batches=0,
+    batch_size=32,
 ):
     set_seed()
 
@@ -56,11 +57,14 @@ def train(
             "weight_decay": weight_decay,
             "num_epochs": num_epochs,
             "max_batches": max_batches,
+            "batch_size": batch_size,
         }
     )
 
-    train_dataloader = get_flickr_dataloader(device, split="train")
-    val_dataloader = get_flickr_dataloader(device, split="val")
+    train_dataloader = get_flickr_dataloader(
+        device, split="train", batch_size=batch_size
+    )
+    val_dataloader = get_flickr_dataloader(device, split="val", batch_size=batch_size)
 
     decoder = Decoder(n_head=num_heads, n_inner=num_inner).to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)
@@ -164,6 +168,12 @@ if __name__ == "__main__":
         default=0.01,
         help="Weight decay level (default: 0.01)",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=32,
+        help="Batch size for training (default: 32)",
+    )
     args = parser.parse_args()
 
     train(
@@ -175,4 +185,5 @@ if __name__ == "__main__":
         max_batches=args.max_batches,
         lr=args.lr,
         weight_decay=args.weight_decay,
+        batch_size=args.batch_size,
     )
