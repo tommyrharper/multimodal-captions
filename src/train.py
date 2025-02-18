@@ -6,6 +6,8 @@ from torch import optim
 import random
 import numpy as np
 
+debug_batch_num = 3
+
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -17,7 +19,13 @@ def set_seed(seed=42):
 
 
 def train(
-    device, num_heads=4, num_inner=1024, num_epochs=1, lr=1e-4, weight_decay=0.01
+    device,
+    num_heads=4,
+    num_inner=1024,
+    num_epochs=1,
+    lr=1e-4,
+    weight_decay=0.01,
+    debug=True,
 ):
     set_seed()  # Set seeds before training
 
@@ -53,7 +61,7 @@ def train(
 
             train_loss += loss.item()
 
-            if batch_num > 3:
+            if debug and batch_num >= debug_batch_num:  # Early break if in debug mode
                 break
 
         decoder.eval()
@@ -75,7 +83,9 @@ def train(
 
                 val_loss += loss.item()
 
-                if val_batch_num > 3:
+                if (
+                    debug and val_batch_num >= debug_batch_num
+                ):  # Early break if in debug mode
                     break
 
         average_train_loss = train_loss / batch_num
@@ -92,4 +102,4 @@ if __name__ == "__main__":
     )
     print("device", device)
 
-    train(device=device, num_heads=2, num_inner=512)
+    train(device=device, num_heads=2, num_inner=512, debug=True)
