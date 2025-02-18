@@ -18,7 +18,7 @@ class Flickr30kCLIPDataset(Dataset):
     def __getitem__(self, idx):
         item = self.hf_dataset[idx]
         image = item["image"]
-        caption = item["caption"][0] # todo: get random caption?
+        caption = item["caption"][torch.randint(0, len(item["caption"]), (1,)).item()]
 
         # Move image inputs to same device as CLIP model
         image_inputs = self.clip_processor(images=image, return_tensors="pt")
