@@ -4,7 +4,9 @@ from transformers import GPT2Config, GPT2Model
 
 
 class Decoder(nn.Module):
-    def __init__(self, n_head=4, n_inner=1024):
+    def __init__(
+        self, n_head=4, n_inner=1024, clip_embedding_dim=512, max_seq_length=77
+    ):
         super().__init__()
 
         # Get GPT2's config but override some params
@@ -13,13 +15,17 @@ class Decoder(nn.Module):
             n_inner=n_inner,  # Smaller feed-forward dimension
         )
 
-        self.image_projection = nn.Linear(512, self.config.n_embd)  # [512] => [768]
+        # Project CLIP embedding to GPT2 dimension
+        self.image_projection = nn.Linear(
+            clip_embedding_dim, self.config.n_embd
+        )  # [512] => [768]
         self.norm1 = nn.LayerNorm(self.config.n_embd)
         self.dropout = nn.Dropout(0.1)
 
-        # Fixed size causal mask for our specific sequence length (77 tokens + 1 image token)
-        # note this is effectively saved as self.attn_mask
-        self.register_buffer("attn_mask", torch.tril(torch.ones(78, 78)))
+        # Fixed size causal mask for sequence length plus image token
+        self.register_buffer(
+            "attn_mask", torch.tril(torch.ones(max_seq_length + 1, max_seq_length + 1))
+        )
 
         # Use GPT2's token embedding weights
         gpt2 = GPT2Model.from_pretrained("gpt2")
