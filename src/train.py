@@ -130,6 +130,8 @@ def train(
     decoder = Decoder(n_head=num_heads, n_inner=num_inner).to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)
 
+    best_val_loss = float("inf")
+
     for epoch in range(num_epochs):
         # Training
         decoder.train()
@@ -179,20 +181,24 @@ def train(
                 if debug and batch_idx >= debug_batch_num:
                     break
 
-        # Log epoch results and save checkpoint
+        # Log epoch results and save checkpoint if improved
         average_train_loss = total_train_loss / batch_idx
         average_val_loss = total_val_loss / batch_idx
         log_epoch_metrics(
             average_train_loss, average_val_loss, epoch, wandb if use_wandb else None
         )
 
-        save_checkpoint(
-            decoder,
-            epoch,
-            average_train_loss,
-            average_val_loss,
-            wandb=wandb if use_wandb else None,
-        )
+        # Save checkpoint only if validation loss improved
+        if average_val_loss < best_val_loss:
+            best_val_loss = average_val_loss
+            save_checkpoint(
+                decoder,
+                epoch,
+                average_train_loss,
+                average_val_loss,
+                wandb=wandb if use_wandb else None,
+            )
+            print(f"Saved new best model with validation loss: {best_val_loss:.4f}")
 
     if use_wandb:
         wandb.finish()
