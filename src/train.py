@@ -56,10 +56,10 @@ def train(
         decoder.train()
         train_loss = 0
         train_iter = tqdm(train_dataloader, desc=f"Training Epoch {epoch+1}")
-        
+
         for batch_num, batch in enumerate(train_iter, 1):
             loss = compute_loss(batch, decoder, device)
-            
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -74,7 +74,7 @@ def train(
         decoder.eval()
         val_loss = 0
         val_iter = tqdm(val_dataloader, desc=f"Validation Epoch {epoch+1}")
-        
+
         with torch.no_grad():
             for val_batch_num, batch in enumerate(val_iter, 1):
                 loss = compute_loss(batch, decoder, device)

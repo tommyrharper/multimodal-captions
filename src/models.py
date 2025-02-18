@@ -80,7 +80,7 @@ class Decoder(nn.Module):
         # Only compute logits for text positions (skip image token)
         text_sequence = sequence[:, 1:, :]
         logits = self.lm_head(text_sequence)
-        
+
         # Return log probabilities
         return torch.log_softmax(logits, dim=-1)
 
