@@ -7,6 +7,7 @@ import random
 import numpy as np
 from tqdm import tqdm
 import wandb
+import os
 
 debug_batch_num = 3
 
@@ -38,7 +39,7 @@ def compute_loss(batch, model, device):
 def log_batch_metrics(loss, total_loss, batch_idx, epoch, split="train", wandb=None):
     """Log metrics for a single batch."""
     running_avg_loss = total_loss / batch_idx
-    
+
     if wandb:
         wandb.log(
             {
@@ -63,6 +64,38 @@ def log_epoch_metrics(train_loss, val_loss, epoch, wandb=None):
         )
     print(f"Epoch {epoch+1} average train loss: {train_loss:.4f}")
     print(f"Epoch {epoch+1} average val loss: {val_loss:.4f}")
+
+
+def save_checkpoint(
+    model, epoch, train_loss, val_loss, checkpoint_dir="checkpoints", wandb=None
+):
+    """Save model checkpoint locally and to wandb."""
+    # Create checkpoint directory if it doesn't exist
+    os.makedirs(checkpoint_dir, exist_ok=True)
+
+    # Save checkpoint locally
+    checkpoint = {
+        "epoch": epoch,
+        "model_state_dict": model.state_dict(),
+        "train_loss": train_loss,
+        "val_loss": val_loss,
+    }
+    checkpoint_path = os.path.join(checkpoint_dir, f"model_epoch_{epoch}.pt")
+    torch.save(checkpoint, checkpoint_path)
+
+    # Log to wandb if enabled
+    if wandb:
+        artifact = wandb.Artifact(
+            name=f"model-epoch-{epoch}",
+            type="model",
+            metadata={
+                "epoch": epoch,
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+            },
+        )
+        artifact.add_file(checkpoint_path)
+        wandb.log_artifact(artifact)
 
 
 def train(
@@ -112,8 +145,12 @@ def train(
 
             total_train_loss += loss.item()
             postfix = log_batch_metrics(
-                loss, total_train_loss, batch_idx, epoch, "train", 
-                wandb if use_wandb else None
+                loss,
+                total_train_loss,
+                batch_idx,
+                epoch,
+                "train",
+                wandb if use_wandb else None,
             )
             train_iter.set_postfix(postfix)
 
@@ -130,20 +167,31 @@ def train(
                 loss = compute_loss(batch, decoder, device)
                 total_val_loss += loss.item()
                 postfix = log_batch_metrics(
-                    loss, total_val_loss, batch_idx, epoch, "val",
-                    wandb if use_wandb else None
+                    loss,
+                    total_val_loss,
+                    batch_idx,
+                    epoch,
+                    "val",
+                    wandb if use_wandb else None,
                 )
                 val_iter.set_postfix(postfix)
 
                 if debug and batch_idx >= debug_batch_num:
                     break
 
-        # Log epoch results
+        # Log epoch results and save checkpoint
         average_train_loss = total_train_loss / batch_idx
         average_val_loss = total_val_loss / batch_idx
         log_epoch_metrics(
-            average_train_loss, average_val_loss, epoch,
-            wandb if use_wandb else None
+            average_train_loss, average_val_loss, epoch, wandb if use_wandb else None
+        )
+
+        save_checkpoint(
+            decoder,
+            epoch,
+            average_train_loss,
+            average_val_loss,
+            wandb=wandb if use_wandb else None,
         )
 
     if use_wandb:
