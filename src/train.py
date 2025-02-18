@@ -5,7 +5,9 @@ from src.models import Decoder
 from torch import optim
 
 
-def train(device, num_heads=4, num_inner=1024, num_epochs=1, lr=1e-4, weight_decay=0.01):
+def train(
+    device, num_heads=4, num_inner=1024, num_epochs=1, lr=1e-4, weight_decay=0.01
+):
     dataloader = get_flickr_dataloader(device)
     decoder = Decoder(n_head=num_heads, n_inner=num_inner).to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)

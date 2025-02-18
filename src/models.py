@@ -13,7 +13,7 @@ class Decoder(nn.Module):
             n_inner=n_inner,  # Smaller feed-forward dimension
         )
 
-        self.image_projection = nn.Linear(512, self.config.n_embd) # [512] => [768]
+        self.image_projection = nn.Linear(512, self.config.n_embd)  # [512] => [768]
         self.norm1 = nn.LayerNorm(self.config.n_embd)
         self.dropout = nn.Dropout(0.1)
 
