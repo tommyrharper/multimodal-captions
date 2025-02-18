@@ -63,28 +63,41 @@ if __name__ == "__main__":
         default="checkpoints/model_epoch_9.pt",
         help="Path to checkpoint relative to project root or absolute path",
     )
+    parser.add_argument(
+        "--image-id",
+        type=int,
+        default=0,
+        help="Index of validation image to caption (default: 0)",
+    )
     args = parser.parse_args()
 
     # Load model from checkpoint
     model = load_model(args.checkpoint, device)
 
-    # Get a single example from validation set with images and captions
+    # Get validation dataloader
     val_dataloader = get_flickr_dataloader(
         device, 
         split="val", 
         batch_size=1, 
         return_extras=True
     )
-    batch = next(iter(val_dataloader))
 
-    # Get a single example and generate caption
+    # Get the requested image
+    for i, batch in enumerate(val_dataloader):
+        if i == args.image_id:
+            break
+    else:
+        print(f"Error: Image index {args.image_id} is out of range")
+        exit(1)
+
+    # Generate caption
     image = batch["image"]
-    original_caption = batch["caption"][0]  # Get first caption
+    original_caption = batch["caption"][0]
     image_embedding = batch["image_embedding"].to(device)
     generated_caption = generate_caption(model, image_embedding, val_dataloader.dataset.tokenizer)
 
-    print("generated_caption", generated_caption)
-    print("original_caption", original_caption)
+    print("Generated caption:", generated_caption)
+    print("Original caption:", original_caption)
 
     # Display image and captions
     plt.figure(figsize=(10, 8))
