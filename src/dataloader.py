@@ -126,13 +126,15 @@ def get_flickr_dataloader(
         return_extras=return_extras,
     )
 
-    # Create and return DataLoader with custom collate_fn
-    return DataLoader(
-        flickr_dataset, 
-        batch_size=batch_size, 
-        shuffle=(split == "train"),
-        collate_fn=collate_fn,
-    )
+    # Only use custom collate_fn when returning images
+    dataloader_kwargs = {
+        "batch_size": batch_size,
+        "shuffle": (split == "train"),
+    }
+    if return_extras:
+        dataloader_kwargs["collate_fn"] = collate_fn
+
+    return DataLoader(flickr_dataset, **dataloader_kwargs)
 
 
 if __name__ == "__main__":
