@@ -53,23 +53,33 @@ class Flickr30kCLIPDataset(Dataset):
         }
 
 
-def get_flickr_dataloader(device, split="train", batch_size=32):
-    # Load dataset from Hugging Face
-    dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
+def get_flickr_dataloader(device, split="train", batch_size=32, train_ratio=0.8, seed=42):
+    # Load full dataset
+    full_dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
+    
+    # Calculate split sizes
+    total_size = len(full_dataset)
+    train_size = int(total_size * train_ratio)
+    
+    # Split dataset
+    full_dataset = full_dataset.shuffle(seed=seed)
+    train_dataset = full_dataset.select(range(train_size))
+    val_dataset = full_dataset.select(range(train_size, total_size))
+    
+    # Select appropriate split
+    dataset = train_dataset if split == "train" else val_dataset
 
-    # Load models and move CLIP to device immediately
+    # Load models and move CLIP to device
     clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
     clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
     tokenizer.pad_token = tokenizer.eos_token
 
     # Create dataset instance
-    flickr_dataset = Flickr30kCLIPDataset(
-        dataset, clip_processor, clip_model, tokenizer
-    )
+    flickr_dataset = Flickr30kCLIPDataset(dataset, clip_processor, clip_model, tokenizer)
 
     # Create and return DataLoader
-    return DataLoader(flickr_dataset, batch_size=batch_size, shuffle=True)
+    return DataLoader(flickr_dataset, batch_size=batch_size, shuffle=(split == "train"))
 
 
 if __name__ == "__main__":

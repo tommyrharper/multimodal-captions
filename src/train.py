@@ -19,14 +19,16 @@ def train(
 ):
     set_seed()  # Set seeds before training
     
-    dataloader = get_flickr_dataloader(device)
+    train_dataloader = get_flickr_dataloader(device, split="train")
+    val_dataloader = get_flickr_dataloader(device, split="val")
+    
     decoder = Decoder(n_head=num_heads, n_inner=num_inner).to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)
 
     for epoch in range(num_epochs):
         batch_num = 0
         train_loss = 0
-        for batch in dataloader:
+        for batch in train_dataloader:
             batch_num += 1
             print("batch", batch_num)
 
