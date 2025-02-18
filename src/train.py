@@ -7,8 +7,7 @@ import random
 import numpy as np
 from tqdm import tqdm
 from src.logger import TrainingLogger
-
-debug_batch_num = 3
+import argparse
 
 
 def set_seed(seed=42):
@@ -42,8 +41,8 @@ def train(
     num_epochs=1,
     lr=1e-4,
     weight_decay=0.01,
-    debug=True,
     use_wandb=False,
+    max_batches=0,
 ):
     set_seed()
 
@@ -56,7 +55,7 @@ def train(
             "learning_rate": lr,
             "weight_decay": weight_decay,
             "num_epochs": num_epochs,
-            "debug": debug,
+            "max_batches": max_batches,
         }
     )
 
@@ -87,7 +86,7 @@ def train(
             )
             train_iter.set_postfix(postfix)
 
-            if debug and batch_idx >= debug_batch_num:
+            if max_batches != 0 and batch_idx >= max_batches:
                 break
 
         # Validation
@@ -104,7 +103,7 @@ def train(
                 )
                 val_iter.set_postfix(postfix)
 
-                if debug and batch_idx >= debug_batch_num:
+                if max_batches != 0 and batch_idx >= max_batches:
                     break
 
         # Log epoch results and save checkpoint if improved
@@ -128,4 +127,26 @@ if __name__ == "__main__":
     )
     print("device", device)
 
-    train(device=device, num_heads=2, num_inner=512, debug=True, use_wandb=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--wandb", action="store_true", help="Enable Weights & Biases logging"
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=1, help="Number of epochs to train (default: 1)"
+    )
+    parser.add_argument(
+        "--max-batches",
+        type=int,
+        default=0,
+        help="Number of batches to train (default: all)",
+    )
+    args = parser.parse_args()
+
+    train(
+        device=device,
+        num_heads=2,
+        num_inner=512,
+        use_wandb=args.wandb,
+        num_epochs=args.epochs,
+        max_batches=args.max_batches,
+    )
