@@ -9,8 +9,6 @@ class Flickr30kCLIPDataset(Dataset):
         self.clip_processor = clip_processor
         self.clip_model = clip_model
         self.tokenizer = tokenizer
-        # Add image projection layer to match decoder dimensions if needed
-        # self.image_projection = nn.Linear(512, decoder_hidden_size)
 
     def __len__(self):
         return len(self.hf_dataset)
@@ -37,7 +35,6 @@ class Flickr30kCLIPDataset(Dataset):
         )
         
         input_ids = text_inputs["input_ids"].squeeze(0)
-        attention_mask = text_inputs["attention_mask"].squeeze(0) # todo: don't generate attention mask each time
         
         # Create labels (shifted input_ids for next token prediction)
         labels = input_ids.clone()
@@ -47,7 +44,6 @@ class Flickr30kCLIPDataset(Dataset):
         return {
             'image_embedding': image_embedding,  # (512,)
             'input_ids': input_ids,  # (77,)
-            'attention_mask': attention_mask,  # (77,)
             'labels': labels  # (77,)
         }
 
@@ -80,11 +76,9 @@ if __name__ == "__main__":
     batch = next(iter(dataloader))
     image_embeddings = batch['image_embedding']  # [B, 512]
     input_ids = batch['input_ids']  # [B, 77]
-    attention_mask = batch['attention_mask']  # [B, 77]
     labels = batch['labels']  # [B, 77]
 
     print("Image Embeddings:", image_embeddings.shape)  # [32, 512]
     print("Input IDs:", input_ids.shape)  # [32, 77]
-    print("Attention Mask:", attention_mask.shape)  # [32, 77]
     print("Labels:", labels.shape)  # [32, 77]
 
