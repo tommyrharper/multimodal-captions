@@ -35,29 +35,32 @@ def compute_loss(batch, model, device):
     return loss
 
 
-def log_batch_metrics(wandb, loss, total_loss, batch_idx, epoch, split="train"):
+def log_batch_metrics(loss, total_loss, batch_idx, epoch, split="train", wandb=None):
     """Log metrics for a single batch."""
     running_avg_loss = total_loss / batch_idx
-    wandb.log(
-        {
-            f"{split}/step_loss": loss.item(),
-            f"{split}/running_avg_loss": running_avg_loss,
-            "epoch": epoch,
-            "step": batch_idx,
-        }
-    )
+    
+    if wandb:
+        wandb.log(
+            {
+                f"{split}/step_loss": loss.item(),
+                f"{split}/running_avg_loss": running_avg_loss,
+                "epoch": epoch,
+                "step": batch_idx,
+            }
+        )
     return {"avg_loss": f"{running_avg_loss:.4f}"}
 
 
-def log_epoch_metrics(wandb, train_loss, val_loss, epoch):
+def log_epoch_metrics(train_loss, val_loss, epoch, wandb=None):
     """Log metrics for entire epoch."""
-    wandb.log(
-        {
-            "train/epoch_loss": train_loss,
-            "val/epoch_loss": val_loss,
-            "epoch": epoch,
-        }
-    )
+    if wandb:
+        wandb.log(
+            {
+                "train/epoch_loss": train_loss,
+                "val/epoch_loss": val_loss,
+                "epoch": epoch,
+            }
+        )
     print(f"Epoch {epoch+1} average train loss: {train_loss:.4f}")
     print(f"Epoch {epoch+1} average val loss: {val_loss:.4f}")
 
@@ -70,21 +73,23 @@ def train(
     lr=1e-4,
     weight_decay=0.01,
     debug=True,
+    use_wandb=False,
 ):
     set_seed()
 
-    # Initialize wandb
-    wandb.init(
-        project="image-captioning",
-        config={
-            "num_heads": num_heads,
-            "num_inner": num_inner,
-            "learning_rate": lr,
-            "weight_decay": weight_decay,
-            "num_epochs": num_epochs,
-            "debug": debug,
-        },
-    )
+    # Initialize wandb if requested
+    if use_wandb:
+        wandb.init(
+            project="image-captioning",
+            config={
+                "num_heads": num_heads,
+                "num_inner": num_inner,
+                "learning_rate": lr,
+                "weight_decay": weight_decay,
+                "num_epochs": num_epochs,
+                "debug": debug,
+            },
+        )
 
     train_dataloader = get_flickr_dataloader(device, split="train")
     val_dataloader = get_flickr_dataloader(device, split="val")
@@ -107,7 +112,8 @@ def train(
 
             total_train_loss += loss.item()
             postfix = log_batch_metrics(
-                wandb, loss, total_train_loss, batch_idx, epoch, "train"
+                loss, total_train_loss, batch_idx, epoch, "train", 
+                wandb if use_wandb else None
             )
             train_iter.set_postfix(postfix)
 
@@ -124,7 +130,8 @@ def train(
                 loss = compute_loss(batch, decoder, device)
                 total_val_loss += loss.item()
                 postfix = log_batch_metrics(
-                    wandb, loss, total_val_loss, batch_idx, epoch, "val"
+                    loss, total_val_loss, batch_idx, epoch, "val",
+                    wandb if use_wandb else None
                 )
                 val_iter.set_postfix(postfix)
 
@@ -134,9 +141,13 @@ def train(
         # Log epoch results
         average_train_loss = total_train_loss / batch_idx
         average_val_loss = total_val_loss / batch_idx
-        log_epoch_metrics(wandb, average_train_loss, average_val_loss, epoch)
+        log_epoch_metrics(
+            average_train_loss, average_val_loss, epoch,
+            wandb if use_wandb else None
+        )
 
-    wandb.finish()
+    if use_wandb:
+        wandb.finish()
 
 
 if __name__ == "__main__":
@@ -147,4 +158,4 @@ if __name__ == "__main__":
     )
     print("device", device)
 
-    train(device=device, num_heads=2, num_inner=512, debug=True)
+    train(device=device, num_heads=2, num_inner=512, debug=True, use_wandb=True)
