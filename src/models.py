@@ -43,8 +43,13 @@ class Decoder(nn.Module):
         sequence = sequence + self.ff(sequence)
 
         logits = self.lm_head(sequence)
-
-        return logits        
+        
+        # todo: check if there is a more efficient way than slicing off the image token at the end after logits are calculated
+        # perhaps can do this before the logits are calculated???
+        # Skip the image token position in logits (position 0)
+        logits = logits[:, 1:, :]  # Now matches labels length
+        
+        return logits
         return None
         if labels is not None:
             loss = nn.functional.cross_entropy(logits.view(-1, self.config.vocab_size), labels.view(-1), ignore_index=-100)

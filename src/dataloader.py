@@ -20,8 +20,10 @@ class Flickr30kCLIPDataset(Dataset):
         image = item["image"]
         caption = item["caption"][0] # todo: get random caption?
 
-        # Get image embedding
+        # Move image inputs to same device as CLIP model
         image_inputs = self.clip_processor(images=image, return_tensors="pt")
+        image_inputs = {k: v.to(self.clip_model.device) for k, v in image_inputs.items()}
+        
         with torch.no_grad():
             image_embedding = self.clip_model.get_image_features(pixel_values=image_inputs["pixel_values"]).squeeze(0)
 
@@ -50,20 +52,22 @@ class Flickr30kCLIPDataset(Dataset):
         }
 
 def get_flickr_dataloader(split="train", batch_size=32):
-    # Load dataset from Hugging Face
-    dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
-
-    # Load models and tokenizers
-    clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-    clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    tokenizer.pad_token = tokenizer.eos_token
-
     device = (
         "mps"
         if torch.backends.mps.is_available()
         else "cuda" if torch.cuda.is_available() else "cpu"
     )
+
+    # Load dataset from Hugging Face
+    dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
+
+    # Load models and tokenizers
+    clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+    clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    tokenizer.pad_token = tokenizer.eos_token
+
+    print("device", device)
 
     clip_model.to(device)
 
