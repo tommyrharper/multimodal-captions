@@ -15,7 +15,8 @@ class Decoder(nn.Module):
         self.image_projection = nn.Linear(512, self.config.n_embd)
 
         # Fixed size causal mask for our specific sequence length (77 tokens + 1 image token)
-        self.causal_mask = torch.tril(torch.ones(78, 78)) # todo: make this dynamic
+        # note this is effectively saved as self.attn_mask
+        self.register_buffer('attn_mask', torch.tril(torch.ones(78, 78)))
         
         # Use GPT2's token embedding weights
         gpt2 = GPT2Model.from_pretrained('gpt2')
@@ -38,7 +39,7 @@ class Decoder(nn.Module):
         image_embedding = self.image_projection(image_embedding)
         text_embeddings = self.token_embedding(input_ids)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
-        attn_output, _ = self.self_attention(sequence, sequence, sequence, attn_mask=self.causal_mask)
+        attn_output, _ = self.self_attention(sequence, sequence, sequence, attn_mask=self.attn_mask)
         sequence = self.norm1(sequence + attn_output)
         sequence = sequence + self.ff(sequence)
 

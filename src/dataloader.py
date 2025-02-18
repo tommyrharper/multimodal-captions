@@ -51,25 +51,15 @@ class Flickr30kCLIPDataset(Dataset):
             'labels': labels  # (77,)
         }
 
-def get_flickr_dataloader(split="train", batch_size=32):
-    device = (
-        "mps"
-        if torch.backends.mps.is_available()
-        else "cuda" if torch.cuda.is_available() else "cpu"
-    )
-
+def get_flickr_dataloader(device, split="train", batch_size=32):
     # Load dataset from Hugging Face
     dataset = load_dataset("nlphuji/flickr30k", split="test", cache_dir="./data")
 
-    # Load models and tokenizers
+    # Load models and move CLIP to device immediately
     clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
     clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     tokenizer.pad_token = tokenizer.eos_token
-
-    print("device", device)
-
-    clip_model.to(device)
 
     # Create dataset instance
     flickr_dataset = Flickr30kCLIPDataset(dataset, clip_processor, clip_model, tokenizer)
@@ -79,7 +69,13 @@ def get_flickr_dataloader(split="train", batch_size=32):
 
 
 if __name__ == "__main__":
-    dataloader = get_flickr_dataloader()
+    device = (
+        "mps"
+        if torch.backends.mps.is_available()
+        else "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    dataloader = get_flickr_dataloader(device)
     # Fetch a batch
     batch = next(iter(dataloader))
     image_embeddings = batch['image_embedding']  # [B, 512]
