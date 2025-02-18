@@ -13,7 +13,7 @@ class Decoder(nn.Module):
             n_inner=n_inner,  # Smaller feed-forward dimension
         )
 
-        self.image_projection = nn.Linear(512, self.config.n_embd)
+        self.image_projection = nn.Linear(512, self.config.n_embd) # [512] => [768]
 
         # Fixed size causal mask for our specific sequence length (77 tokens + 1 image token)
         # note this is effectively saved as self.attn_mask
