@@ -12,36 +12,53 @@ warnings.simplefilter("ignore", category=FutureWarning)
 
 def load_model(checkpoint_path, device):
     """Load model from checkpoint."""
-    # Convert relative path to absolute path from project root
     if not os.path.isabs(checkpoint_path):
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         checkpoint_path = os.path.join(project_root, checkpoint_path)
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
+    
+    # Get config from checkpoint or use defaults
+    config = checkpoint.get('config', {
+        'n_head': 2,
+        'n_inner': 512,
+        'num_layers': 6,
+    })
 
-    # Use known training architecture
-    model = Transformer(n_head=2, n_inner=512).to(device)
+    # Create model with saved architecture
+    model = Transformer(
+        n_head=config['n_head'],
+        n_inner=config['n_inner'],
+        num_layers=config.get('num_layers', 6)  # Default to 6 for older checkpoints
+    ).to(device)
+    
     model.load_state_dict(checkpoint["model_state_dict"])
     return model
 
 
-def generate_caption(model, image_embedding, tokenizer, min_length=5):
+def generate_caption(model, image_embedding, tokenizer, min_length=5, temperature=1.0):
     """Generate a caption for an image."""
     model.eval()
     with torch.no_grad():
         input_ids = torch.tensor([[tokenizer.bos_token_id]]).to(image_embedding.device)
 
-        for i in range(77 - 1):  # Fixed max length of 77 from training
+        for i in range(77 - 1):
             log_probs = model(image_embedding, input_ids)
-            next_token_logits = log_probs[:, -1, :]
+            next_token_logits = log_probs[:, -1, :] / temperature  # Add temperature
 
             # Force non-EOS tokens for first min_length tokens
             if i < min_length:
                 next_token_logits[0, tokenizer.eos_token_id] = float("-inf")
 
-            next_token = torch.argmax(next_token_logits, dim=-1)
+            # Add top-k sampling
+            top_k = 40
+            indices_to_remove = next_token_logits < torch.topk(next_token_logits, top_k)[0][..., -1, None]
+            next_token_logits[indices_to_remove] = float('-inf')
+            
+            # Convert to probabilities and sample
+            probs = torch.nn.functional.softmax(next_token_logits, dim=-1)
+            next_token = torch.multinomial(probs[0], 1)
 
-            # Stop if we predict the end token (after min_length)
             if next_token.item() == tokenizer.eos_token_id:
                 break
 
