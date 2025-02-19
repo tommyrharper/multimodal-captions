@@ -88,7 +88,8 @@ class Decoder(nn.Module):
         self.self_attention = nn.MultiheadAttention(
             self.config.n_embd, self.config.n_head, batch_first=True, dropout=dropout
         )
-        self.norm2 = nn.LayerNorm(self.config.n_embd)
+
+        self.norm1 = nn.LayerNorm(self.config.n_embd)
 
         self.ff = nn.Sequential(
             nn.Linear(self.config.n_embd, self.config.n_inner),
@@ -96,7 +97,7 @@ class Decoder(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(self.config.n_inner, self.config.n_embd),
         )
-        self.norm3 = nn.LayerNorm(self.config.n_embd)
+        self.norm2 = nn.LayerNorm(self.config.n_embd)
 
     def forward(self, sequence):
 
@@ -109,12 +110,12 @@ class Decoder(nn.Module):
             sequence, sequence, sequence, attn_mask=attn_mask
         )
         sequence = sequence + attn_output
-        sequence = self.norm2(sequence)
+        sequence = self.norm1(sequence)
 
         # feed-forward + add + norm
         ff_output = self.ff(sequence)
         sequence = sequence + ff_output
-        sequence = self.norm3(sequence)
+        sequence = self.norm2(sequence)
 
         return sequence
 
