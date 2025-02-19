@@ -68,3 +68,4 @@ Run the `./env/export_env.sh` script after each install.
 
 - [ ] Investigate if using NLL instead of Cross Entropy Loss could be a problem
 - [ ] Increase temperature during inference
+- [ ] Remove duplicate import of model for training and validation
