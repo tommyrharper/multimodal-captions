@@ -52,19 +52,24 @@ class Transformer(nn.Module):
         self.lm_head = nn.Linear(self.config.n_embd, self.config.vocab_size)
 
     def forward(self, image_embedding, input_ids):
-        image_embedding = self.image_projection(image_embedding)
-        text_embeddings = self.token_embedding(input_ids)
+        # Project image embedding
+        image_embedding = self.image_projection(image_embedding)  # [B, 768]
+
+        # Get text embeddings
+        text_embeddings = self.token_embedding(input_ids)  # [B, 77, 768]
         text_embeddings = self.embed_dropout(text_embeddings)
 
-        # Add position embeddings
+        # Get position embeddings for text only
         position_ids = torch.arange(
-            0, text_embeddings.size(1) + 1, device=text_embeddings.device
+            0, text_embeddings.size(1), device=text_embeddings.device
         ).unsqueeze(0)
-        position_embeddings = self.position_embedding(position_ids)
+        position_embeddings = self.position_embedding(position_ids)  # [B, 77, 768]
+        # Add position embeddings to text
+        text_embeddings = text_embeddings + position_embeddings
+        # Concatenate image embedding (which doesn't need position embedding)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
-        sequence = sequence + position_embeddings
 
-        # Get appropriate size attention mask for current sequence length
+        # Process through decoder layers
         for decoder in self.decoders:
             sequence = decoder(sequence)
 
