@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from src.dataloader import get_flickr_dataloader
-from src.models import Decoder
+from src.models import Transformer
 from torch import optim
 import random
 import numpy as np
@@ -44,6 +44,7 @@ def train(
     use_wandb=False,
     max_batches=0,
     batch_size=32,
+    num_layers=6,
 ):
     set_seed()
 
@@ -58,6 +59,7 @@ def train(
             "num_epochs": num_epochs,
             "max_batches": max_batches,
             "batch_size": batch_size,
+            "num_layers": num_layers,
         }
     )
 
@@ -66,19 +68,19 @@ def train(
     )
     val_dataloader = get_flickr_dataloader(device, split="val", batch_size=batch_size)
 
-    decoder = Decoder(n_head=num_heads, n_inner=num_inner).to(device)
-    optimizer = optim.AdamW(decoder.parameters(), lr=lr, weight_decay=weight_decay)
+    transformer = Transformer(n_head=num_heads, n_inner=num_inner, num_layers=num_layers).to(device)
+    optimizer = optim.AdamW(transformer.parameters(), lr=lr, weight_decay=weight_decay)
 
     best_val_loss = float("inf")
 
     for epoch in range(num_epochs):
         # Training
-        decoder.train()
+        transformer.train()
         total_train_loss = 0
         train_iter = tqdm(train_dataloader, desc=f"Training Epoch {epoch+1}")
 
         for batch_idx, batch in enumerate(train_iter, 1):
-            loss = compute_loss(batch, decoder, device)
+            loss = compute_loss(batch, transformer, device)
 
             optimizer.zero_grad()
             loss.backward()
@@ -94,13 +96,13 @@ def train(
                 break
 
         # Validation
-        decoder.eval()
+        transformer.eval()
         total_val_loss = 0
         val_iter = tqdm(val_dataloader, desc=f"Validation Epoch {epoch+1}")
 
         with torch.no_grad():
             for batch_idx, batch in enumerate(val_iter, 1):
-                loss = compute_loss(batch, decoder, device)
+                loss = compute_loss(batch, transformer, device)
                 total_val_loss += loss.item()
                 postfix = logger.log_batch(
                     loss.item(), total_val_loss, batch_idx, epoch, "val"
@@ -118,13 +120,14 @@ def train(
         if average_val_loss < best_val_loss:
             best_val_loss = average_val_loss
             logger.save_checkpoint(
-                decoder, 
+                transformer, 
                 epoch, 
                 average_train_loss, 
                 average_val_loss,
                 config={
                     'n_head': num_heads,
                     'n_inner': num_inner,
+                    'num_layers': num_layers,
                 }
             )
             print(f"Saved new best model with validation loss: {best_val_loss:.4f}")
@@ -183,6 +186,12 @@ if __name__ == "__main__":
         default=32,
         help="Batch size for training (default: 32)",
     )
+    parser.add_argument(
+        "--num-layers",
+        type=int,
+        default=6,
+        help="Number of decoder layers (default: 6)",
+    )
     args = parser.parse_args()
 
     train(
@@ -195,4 +204,5 @@ if __name__ == "__main__":
         lr=args.lr,
         weight_decay=args.weight_decay,
         batch_size=args.batch_size,
+        num_layers=args.num_layers,
     )

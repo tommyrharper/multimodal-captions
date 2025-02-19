@@ -1,6 +1,6 @@
 import os
 import torch
-from src.models import Decoder
+from src.models import Transformer
 from src.dataloader import get_flickr_dataloader
 import argparse
 import warnings
@@ -20,7 +20,7 @@ def load_model(checkpoint_path, device):
     checkpoint = torch.load(checkpoint_path, map_location=device)
 
     # Use known training architecture
-    model = Decoder(n_head=2, n_inner=512).to(device)
+    model = Transformer(n_head=2, n_inner=512).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])
     return model
 
