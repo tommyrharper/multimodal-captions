@@ -77,6 +77,7 @@ def train(
         # Training
         transformer.train()
         total_train_loss = 0
+        num_train_batches = 0
         train_iter = tqdm(train_dataloader, desc=f"Training Epoch {epoch+1}")
 
         for batch_idx, batch in enumerate(train_iter, 1):
@@ -87,6 +88,7 @@ def train(
             optimizer.step()
 
             total_train_loss += loss.item()
+            num_train_batches = batch_idx
             postfix = logger.log_batch(
                 loss.item(), total_train_loss, batch_idx, epoch, "train"
             )
@@ -98,12 +100,14 @@ def train(
         # Validation
         transformer.eval()
         total_val_loss = 0
+        num_val_batches = 0
         val_iter = tqdm(val_dataloader, desc=f"Validation Epoch {epoch+1}")
 
         with torch.no_grad():
             for batch_idx, batch in enumerate(val_iter, 1):
                 loss = compute_loss(batch, transformer, device)
                 total_val_loss += loss.item()
+                num_val_batches = batch_idx
                 postfix = logger.log_batch(
                     loss.item(), total_val_loss, batch_idx, epoch, "val"
                 )
@@ -112,9 +116,9 @@ def train(
                 if max_batches != 0 and batch_idx >= max_batches:
                     break
 
-        # Log epoch results and save checkpoint if improved
-        average_train_loss = total_train_loss / batch_idx
-        average_val_loss = total_val_loss / batch_idx
+        # Calculate correct averages using respective batch counts
+        average_train_loss = total_train_loss / num_train_batches
+        average_val_loss = total_val_loss / num_val_batches
         logger.log_epoch(average_train_loss, average_val_loss, epoch)
 
         if average_val_loss < best_val_loss:
