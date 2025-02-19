@@ -6,7 +6,9 @@ from torch.utils.data._utils.collate import default_collate
 
 
 class Flickr30kCLIPDataset(Dataset):
-    def __init__(self, hf_dataset, clip_processor, clip_model, tokenizer, return_extras=False):
+    def __init__(
+        self, hf_dataset, clip_processor, clip_model, tokenizer, return_extras=False
+    ):
         self.hf_dataset = hf_dataset
         self.clip_processor = clip_processor
         self.clip_model = clip_model
@@ -64,10 +66,12 @@ class Flickr30kCLIPDataset(Dataset):
 
         # Only include image and caption during inference
         if self.return_extras:
-            output.update({
-                "image": item["image"],
-                "caption": caption,
-            })
+            output.update(
+                {
+                    "image": item["image"],
+                    "caption": caption,
+                }
+            )
 
         return output
 
@@ -78,21 +82,22 @@ def collate_fn(batch):
     has_image = "image" in batch[0]
     if has_image:
         images = [item.pop("image") for item in batch]
-    
+
     # Use default collate for everything else
     batch = default_collate(batch)
-    
+
     # Add images back to batch without collating
     if has_image:
         batch["image"] = images[0] if len(images) == 1 else images
-        
+
     return batch
 
+
 def get_flickr_dataloader(
-    device, 
-    split="train", 
-    batch_size=32, 
-    train_ratio=0.8, 
+    device,
+    split="train",
+    batch_size=32,
+    train_ratio=0.8,
     seed=42,
     return_extras=False,
 ):
@@ -119,9 +124,9 @@ def get_flickr_dataloader(
 
     # Create dataset instance with return_extras flag
     flickr_dataset = Flickr30kCLIPDataset(
-        dataset, 
-        clip_processor, 
-        clip_model, 
+        dataset,
+        clip_processor,
+        clip_model,
         tokenizer,
         return_extras=return_extras,
     )
@@ -144,15 +149,19 @@ if __name__ == "__main__":
         else "cuda" if torch.cuda.is_available() else "cpu"
     )
 
-    dataloader = get_flickr_dataloader(device)
+    return_extras = False
+
+    dataloader = get_flickr_dataloader(device, return_extras=return_extras)
     # Fetch a batch
     batch = next(iter(dataloader))
     image_embeddings = batch["image_embedding"]  # [B, 512]
     input_ids = batch["input_ids"]  # [B, 77]
     labels = batch["labels"]  # [B, 77]
-    image = batch["image"]  # Get the original image from the batch
+    if return_extras:
+        image = batch["image"]  # Get the original image from the batch
 
     print("Image Embeddings:", image_embeddings.shape)  # [32, 512]
     print("Input IDs:", input_ids.shape)  # [32, 77]
     print("Labels:", labels.shape)  # [32, 77]
-    print("Image:", image.shape)  # [32, 3, 224, 224]
+    if return_extras:
+        print("Image:", image)  # [32] list of 32 PIL images
