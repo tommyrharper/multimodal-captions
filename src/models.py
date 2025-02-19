@@ -35,6 +35,9 @@ class Transformer(nn.Module):
         # Add dropout after embeddings
         self.embed_dropout = nn.Dropout(dropout)
 
+        # Add position embeddings (from GPT2)
+        self.position_embedding = gpt2.wpe
+
         self.decoders = nn.ModuleList(
             [
                 Decoder(
@@ -52,7 +55,14 @@ class Transformer(nn.Module):
         image_embedding = self.image_projection(image_embedding)
         text_embeddings = self.token_embedding(input_ids)
         text_embeddings = self.embed_dropout(text_embeddings)
+
+        # Add position embeddings
+        position_ids = torch.arange(
+            0, text_embeddings.size(1) + 1, device=text_embeddings.device
+        ).unsqueeze(0)
+        position_embeddings = self.position_embedding(position_ids)
         sequence = torch.cat([image_embedding.unsqueeze(1), text_embeddings], dim=1)
+        sequence = sequence + position_embeddings
 
         # Get appropriate size attention mask for current sequence length
         for decoder in self.decoders:
