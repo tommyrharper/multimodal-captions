@@ -110,7 +110,7 @@ if __name__ == "__main__":
     wrapped_orig = textwrap.fill(f"Ground truth: {original_caption}", width=60)
 
     # Display image and wrapped captions
-    plt.figure(figsize=(10, 10))  # Make figure taller
+    plt.figure(figsize=(10, 12))  # Make figure even taller
     plt.imshow(image)
     plt.axis("off")
 
@@ -119,10 +119,10 @@ if __name__ == "__main__":
         f"{wrapped_gen}\n\n{wrapped_orig}",
         pad=20,
         fontsize=10,
-        wrap=True,
-        y=1.05,  # Move title up
+        wrap=True
     )
 
     # Adjust layout to prevent text cutoff
-    plt.subplots_adjust(top=0.85)  # Leave more space at top
+    # plt.subplots_adjust(top=0.8)  # Leave even more space at top
+    plt.tight_layout()  # Automatically adjust subplot parameters
     plt.show()
