@@ -39,6 +39,10 @@ def generate_caption(model, image_embedding, tokenizer, min_length=5):
             if i < min_length:
                 next_token_logits[0, tokenizer.eos_token_id] = float("-inf")
 
+            # Prevent token 785 from following token 13
+            if input_ids[0, -1].item() == 13:
+                next_token_logits[0, 785] = float("-inf")
+
             next_token = torch.argmax(next_token_logits, dim=-1)
 
             while next_token.item() in input_ids[0]:
@@ -52,6 +56,7 @@ def generate_caption(model, image_embedding, tokenizer, min_length=5):
             input_ids = torch.cat([input_ids, next_token.unsqueeze(0)], dim=1)
 
         caption = tokenizer.decode(input_ids[0], skip_special_tokens=True)
+
         return caption
 
 
