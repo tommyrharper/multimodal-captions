@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="checkpoints/model_epoch_9.pt",
+        default="checkpoints/original_working_one.pt",
         help="Path to checkpoint relative to project root or absolute path",
     )
     parser.add_argument(
