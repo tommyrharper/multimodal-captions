@@ -41,6 +41,10 @@ def generate_caption(model, image_embedding, tokenizer, min_length=5):
 
             next_token = torch.argmax(next_token_logits, dim=-1)
 
+            while next_token.item() in input_ids[0]:
+                next_token_logits[0, next_token.item()] = float("-inf")
+                next_token = torch.argmax(next_token_logits, dim=-1)
+
             # Stop if we predict the end token (after min_length)
             if next_token.item() == tokenizer.eos_token_id:
                 break
